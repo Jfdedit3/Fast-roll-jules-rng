@@ -9,10 +9,10 @@ local CONFIG = {
     DELAY_BETWEEN_CHECKS = 0.1,
     RARITY_THRESHOLD = 20000, -- 1/20,000
     DELETE_AMOUNT = "6",
-    DEBUG_MODE = true -- Mettre à true pour voir les logs de rareté
+    DEBUG_MODE = true -- Set to true to see rarity logs
 }
 
--- Liste des auras à supprimer automatiquement
+-- List of auras to automatically delete
 local AURAS_TO_DELETE = {
     "Heat", -- 1/100
     "Flames Curse", -- 1/500
@@ -40,7 +40,7 @@ local AURAS_TO_DELETE = {
     "Storm"
 }
 
--- Fonction pour créer l'interface utilisateur
+-- Function to create the user interface
 local function createUI()
     local gui = Instance.new("ScreenGui")
     local frame = Instance.new("Frame")
@@ -76,7 +76,7 @@ local function createUI()
     return statsLabel, statusLabel
 end
 
--- Variables de statistiques
+-- Stats variables
 local stats = {
     startTime = tick(),
     deletedCount = 0,
@@ -84,7 +84,7 @@ local stats = {
     acceptedCount = 0
 }
 
--- Fonction pour accepter les nouvelles auras
+-- Function to accept new auras
 local function acceptNewAuras()
     local aurasFolder = ReplicatedStorage:FindFirstChild("Auras")
     if aurasFolder then
@@ -92,7 +92,7 @@ local function acceptNewAuras()
             if not table.find(AURAS_TO_DELETE, aura.Name) then
                 stats.acceptedCount = stats.acceptedCount + 1
                 if CONFIG.DEBUG_MODE then
-                    print("Gardé:", aura.Name)
+                    print("Kept:", aura.Name)
                 end
             end
             pcall(function()
@@ -103,7 +103,7 @@ local function acceptNewAuras()
     end
 end
 
--- Fonction pour supprimer les auras indésirables
+-- Function to delete unwanted auras
 local function deleteUnwantedAuras()
     for _, auraName in ipairs(AURAS_TO_DELETE) do
         pcall(function()
@@ -111,34 +111,34 @@ local function deleteUnwantedAuras()
             stats.deletedCount = stats.deletedCount + 1
             stats.lastAuraDeleted = auraName
             if CONFIG.DEBUG_MODE then
-                print("Supprimé:", auraName)
+                print("Deleted:", auraName)
             end
         end)
         task.wait(CONFIG.DELAY_BETWEEN_DELETES)
     end
 end
 
--- Fonction principale
+-- Main function
 local function main()
     local statsLabel, statusLabel = createUI()
     local iterationCount = 0
     
-    -- Boucle principale
+    -- Main loop
     while true do
         local success, err = pcall(function()
-            -- Invoquer ZachRLL
+            -- Invoke ZachRLL
             ReplicatedStorage.Remotes.ZachRLL:InvokeServer()
             
-            -- Supprimer les auras indésirables
+            -- Delete unwanted auras
             deleteUnwantedAuras()
             
-            -- Accepter les nouvelles auras
+            -- Accept new auras
             acceptNewAuras()
             
-            -- Mettre à jour l'interface
+            -- Update the interface
             local timeElapsed = math.floor(tick() - stats.startTime)
             statsLabel.Text = string.format(
-                "Temps: %02d:%02d\nSupprimées: %d\nAcceptées: %d",
+                "Time: %02d:%02d\nDeleted: %d\nAccepted: %d",
                 timeElapsed / 60,
                 timeElapsed % 60,
                 stats.deletedCount,
@@ -146,26 +146,26 @@ local function main()
             )
             
             statusLabel.Text = string.format(
-                "Dernière supprimée:\n%s\n\nSeuil: 1/%s",
+                "Last deleted:\n%s\n\nThreshold: 1/%s",
                 stats.lastAuraDeleted,
                 string.format("%d", CONFIG.RARITY_THRESHOLD)
             )
         end)
         
         if not success and CONFIG.DEBUG_MODE then
-            warn("Erreur:", err)
+            warn("Error:", err)
         end
         
         task.wait(CONFIG.DELAY_BETWEEN_CHECKS)
     end
 end
 
--- Démarrage sécurisé
+-- Safe start
 local success, err = pcall(function()
-    print("Démarrage du script...")
+    print("Starting script...")
     main()
 end)
 
 if not success then
-    warn("Erreur fatale:", err)
+    warn("Fatal error:", err)
 end
